@@ -8,6 +8,8 @@ jobs:
   docker:
     name: Build & Push Docker Images
     runs-on: ubuntu-latest
+    env:
+      IMAGE_NAMESPACE: ${{ secrets.DOCKERHUB_USERNAME }}
     strategy:
       matrix:
         include:
@@ -35,8 +37,8 @@ jobs:
           file: ./${{ matrix.dockerfile }}
           push: true
           tags: |
-            shreyashsri/fellowship-tracker-${{ matrix.image }}:latest
-            shreyashsri/fellowship-tracker-${{ matrix.image }}:${{ github.sha }}
+            ${{ env.IMAGE_NAMESPACE }}/fellowship-tracker-${{ matrix.image }}:latest
+            ${{ env.IMAGE_NAMESPACE }}/fellowship-tracker-${{ matrix.image }}:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -48,14 +50,15 @@ jobs:
       - name: Update image tag and push
         env:
           PAT: ${{ secrets.INFRA_PAT }}
+          IMAGE_NAMESPACE: ${{ secrets.DOCKERHUB_USERNAME }}
         run: |
           IMAGE_TAG="${{ github.sha }}"
           git clone https://x-access-token:${PAT}@github.com/pointblank-club/infra.git infra
           cd infra
 
-          sed -i "s|image: shreyashsri/fellowship-tracker-api:.*|image: shreyashsri/fellowship-tracker-api:${IMAGE_TAG}|" \
+          sed -i "s|image: ${IMAGE_NAMESPACE}/fellowship-tracker-api:.*|image: ${IMAGE_NAMESPACE}/fellowship-tracker-api:${IMAGE_TAG}|" \
             argocd/fellowship-tracker/deployment.yaml
-          sed -i "s|image: shreyashsri/fellowship-tracker-scraper:.*|image: shreyashsri/fellowship-tracker-scraper:${IMAGE_TAG}|" \
+          sed -i "s|image: ${IMAGE_NAMESPACE}/fellowship-tracker-scraper:.*|image: ${IMAGE_NAMESPACE}/fellowship-tracker-scraper:${IMAGE_TAG}|" \
             argocd/fellowship-tracker/cronjob.yaml
 
           git config user.name "github-actions[bot]"
